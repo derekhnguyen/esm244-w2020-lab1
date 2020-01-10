@@ -1,0 +1,110 @@
+---
+title: "ESM 244 LAb 1 DN"
+author: "Derek Nguyen"
+date: "1/8/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) 
+library(blogdown)
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+library(here)
+```
+
+
+Read in noaa_fisheries.csv data
+
+```{r}
+us_landings <- read_csv(here("data", "noaa_fisheries.csv")) 
+```
+
+Now, make a tidy version of the dataframe
+```{r}
+landings_tidy <- us_landings %>% 
+  janitor::clean_names() %>% 
+  mutate(state = str_to_lower(state),
+         afs_name = str_to_lower(afs_name)) %>% 
+  mutate(dollars_num = parse_number(dollars_usd))
+```
+
+Lets just get some info on salmon
+
+```{r}
+salmon_landings <- landings_tidy %>% 
+  mutate(afs_clean = str_remove(afs_name, pattern = "aggregate")) %>% 
+  filter(str_detect(afs_clean, pattern = "salmon")) %>% 
+  separate(afs_clean, into = c("group", "species"), sep = ",")
+```
+
+Find some grouped summary data:
+
+Find annual total US landings and dollar value (summing across al states) for each TYPE of Salmon using `group_by()` + `summarize()`
+
+```{r}
+salmon_summary <- salmon_landings %>% 
+  group_by(year, species) %>% 
+  summarize(
+    tot_landings = sum(landings_pounds),
+    tot_value = sum(dollars_num)
+  ) #create summary table, take every group and then reduce to single value based on chosen variables
+```
+
+
+Make a graph!
+```{r}
+salmon_landings_graph <- ggplot(data = salmon_summary, aes(x = year, y = tot_landings, group = species)) +
+  geom_line(aes(color = species)) +
+  theme_minimal() +
+  scale_x_continuous(c(0,0)) 
+  
+
+salmon_landings_graph
+```
+
+Now we will export our graph with ggsave:
+
+```{r}
+ggsave(plot = salmon_landings_graph, here("figures", "us_salmon_dn.png"),
+                                          width = 12, height = 10)
+```
+
+Lets make a table
+```{r}
+salmon_10 <- salmon_summary %>% 
+  head(10) 
+```
+
+use kable
+```{r}
+kable(salmon_10) %>% 
+  kable_styling(bootstrap_options = "striped",
+                full_width = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
